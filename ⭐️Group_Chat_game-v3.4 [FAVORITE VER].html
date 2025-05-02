@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Group Chat Game - v3.4</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <style>
+    body { margin:0; padding:0; font-family:'Helvetica Neue',sans-serif; background:#000; color:#fff; }
+    #menu { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; }
+    #menu h1 { font-size:48px; margin-bottom:20px; }
+    #start-btn { padding:12px 24px; font-size:18px; border:1px solid #fff; background:transparent; color:#fff; border-radius:8px; cursor:pointer; transition:background .3s; }
+    #start-btn:hover { background:rgba(255,255,255,0.1); }
+    #selector { display:none; flex-wrap:wrap; padding:20px; justify-content:center; }
+    .box { width:150px; height:80px; margin:10px; border-radius:8px; cursor:pointer; opacity:0; transform:translateY(20px); transition:opacity .6s ease, transform .6s ease; }
+    .box.visible { opacity:1; transform:translateY(0); }
+    .timestamp-global { text-align:center; font-size:13px; margin:10px 0; display:none; }
+    .chat-container { display:none; padding:16px; max-width:600px; height:75vh; overflow-y:auto; margin:auto; }
+    .msg-wrapper { margin-bottom:12px; }
+    .msg-time { font-size:10px; color:#666; margin-bottom:2px; }
+    .username { font-size:12px; margin-bottom:4px; font-weight:bold; }
+    .bubble { background:#111; border-radius:16px; padding:12px 14px; font-size:15px; white-space:pre-wrap; line-height:1.4; }
+    .typing { display:inline-block; background:#333; border-radius:14px; padding:8px 12px; font-size:16px; opacity:0.7; animation:blink 1s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:0.7;}50%{opacity:0.3;} }
+  </style>
+</head>
+<body>
+  <div id="menu">
+    <h1>Group Chat</h1>
+    <button id="start-btn">Start</button>
+  </div>
+  <div id="selector"></div>
+  <div class="timestamp-global" id="timestamp-global"></div>
+  <div class="chat-container" id="chat"></div>
+<script>
+  const transcripts = {"Minecraft GC": [[{"user": "saladb0iii", "color": "#FFD700", "text": "Hey y\u2019all, did anyone grab my diamond pick before the raid?"}, {"user": "darrkrroze", "color": "#1E90FF", "text": "Wasn\u2019t me, I only had iron on me."}, {"user": "ch4p_xhap", "color": "#FF4C4C", "text": "Check your Ender chest? Might\u2019ve auto-sorted there."}, {"user": "saladb0iii", "color": "#FFD700", "text": "Checked\u2014empty. I think a creeper snuck in."}, {"user": "wn3ss96", "color": "#00FF7F", "text": "That explains the hole in the wheat farm \ud83d\ude02."}, {"user": "dh_2unnysh1ne", "color": "#FF69B4", "text": "I\u2019ll rebuild it tonight. Who needs materials?"}, {"user": "saladb0iii", "color": "#FFD700", "text": "Cobblestone and wood planks; I\u2019ll bring redstone for the gate."}, {"user": "darrkrroze", "color": "#1E90FF", "text": "On at 8 PM CST\u2014see you then!"}]], "Young College Girls GC": [[{"user": "kaylaxoxo", "color": "#FF69B4", "text": "Omg, what color is the sky where you are?"}, {"user": "maddiem", "color": "#FF1493", "text": "Grey, skies are crying today \ud83d\ude29."}, {"user": "jenniferm", "color": "#DB7093", "text": "Bright blue here, love the sunshine \u2600\ufe0f."}, {"user": "sophiar", "color": "#FFC0CB", "text": "Double rainbow spotted\u2014so extra."}, {"user": "elliev", "color": "#FFB6C1", "text": "Wish I could see it, stuck in the library."}]], "College Football Boys GC": [[{"user": "bulldog99", "color": "#00008B", "text": "Morning drill at 6 AM tomorrow, everyone in?"}, {"user": "tacklemaster", "color": "#8B0000", "text": "Bruh, that\u2019s way too early lol."}, {"user": "QBking", "color": "#2E8B57", "text": "Gotta hit those reps if we wanna win."}, {"user": "linebacker41", "color": "#6A5ACD", "text": "I\u2019ll swing by\u2014coffee required."}, {"user": "safetyfirst", "color": "#B22222", "text": "Let\u2019s go, weather\u2019s perfect."}]], "Desk Job Work GC": [[{"user": "officeowl", "color": "#708090", "text": "Printer jam again, someone free to fix it?"}, {"user": "paperpusher", "color": "#2F4F4F", "text": "On my way\u2014what tray is it?"}, {"user": "cubiclekid", "color": "#696969", "text": "Looks like tray three needs clearing."}, {"user": "spreadsheet_sam", "color": "#808080", "text": "I\u2019ll spare some time after these reports."}]], "Yoga Class GC": [[{"user": "zenwel", "color": "#32CD32", "text": "Morning flow was so grounding today."}, {"user": "sun_salute", "color": "#7CFC00", "text": "My downward dog finally feels stable."}, {"user": "om_girl", "color": "#ADFF2F", "text": "Held crow pose for a full minute!"}, {"user": "peacepete", "color": "#9ACD32", "text": "Savasana is life."}]], "POTUS & Mistress Chat": [[{"user": "POTUS", "color": "#000080", "text": "Ensure the secure line is open tonight."}, {"user": "scarlet_liaison", "color": "#8B0000", "text": "Encryption active. No risks."}, {"user": "POTUS", "color": "#000080", "text": "Meet at the Lincoln Room at 10."}, {"user": "scarlet_liaison", "color": "#8B0000", "text": "I\u2019ll be there."}]], "Long-Lost Father & Son": [[{"user": "dadron", "color": "#8B4513", "text": "Son, I know it's been decades."}, {"user": "sonnyboy", "color": "#2E8B57", "text": "Dad? Is that really you?"}, {"user": "dadron", "color": "#8B4513", "text": "Yes, I searched for you every day."}, {"user": "sonnyboy", "color": "#2E8B57", "text": "I don\u2019t know what to say..."}]], "Guy & AI Support Chat": [[{"user": "techguy", "color": "#4682B4", "text": "My PC won't boot to desktop."}, {"user": "helpbot", "color": "#FFD700", "text": "Try booting into safe mode."}, {"user": "techguy", "color": "#4682B4", "text": "That worked, thanks!"}, {"user": "helpbot", "color": "#FFD700", "text": "Glad to help."}]], "BF & GF Confrontation": [[{"user": "jake_bae", "color": "#1E90FF", "text": "We need to talk about last night."}, {"user": "emma_luv", "color": "#FF69B4", "text": "I never meant to hurt you."}, {"user": "jake_bae", "color": "#1E90FF", "text": "Trust is broken\u2014can we fix it?"}, {"user": "emma_luv", "color": "#FF69B4", "text": "I'll do anything to make it right."}]], "Underground Serial Killers GC": [[{"user": "anonymous", "color": "#888888", "text": "Target has been eliminated."}, {"user": "anonymous", "color": "#888888", "text": "Cleanup is complete."}, {"user": "anonymous", "color": "#888888", "text": "No witnesses left behind."}, {"user": "anonymous", "color": "#888888", "text": "Proceed to next assignment."}]]};
+  const scenarios = ["Minecraft GC", "Young College Girls GC", "College Football Boys GC", "Desk Job Work GC", "Yoga Class GC", "POTUS & Mistress Chat", "Long-Lost Father & Son", "Guy & AI Support Chat", "BF & GF Confrontation", "Underground Serial Killers GC"];
+  const boxColors = ["#0b3d0b", "#330033", "#00094f", "#262626", "#003333", "#330000", "#3d1f00", "#001028", "#2c001f", "#0a0a0a"];
+  const menu = document.getElementById('menu');
+  const selector = document.getElementById('selector');
+  const chat = document.getElementById('chat');
+  const timestampGlobal = document.getElementById('timestamp-global');
+
+  document.getElementById('start-btn').onclick = () => {
+    menu.style.display = 'none';
+    selector.style.display = 'flex';
+    scenarios.forEach((_, i) => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.style.background = boxColors[i];
+      box.style.transitionDelay = (i*0.1)+'s';
+      selector.appendChild(box);
+      setTimeout(() => box.classList.add('visible'), 50);
+      box.onclick = () => startChat(i);
+    });
+  };
+
+  function startChat(idx) {
+    selector.style.display = 'none';
+    timestampGlobal.style.display = 'block';
+    chat.style.display = 'block';
+    timestampGlobal.innerText = new Date().toDateString()+' • '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const scriptArr = transcripts[scenarios[idx]];
+    const script = scriptArr[Math.floor(Math.random()*scriptArr.length)];
+    let i = 0;
+    function showTyping() {
+      const td = document.createElement('div'); td.className='msg-wrapper';
+      const tb = document.createElement('div'); tb.className='typing'; tb.innerText='Typing…';
+      td.appendChild(tb); chat.appendChild(td); chat.scrollTop = chat.scrollHeight; return td;
+    }
+    function showNext() {
+      if(i >= script.length) return;
+      const msg = script[i++];
+      const td = showTyping();
+      const delay = Math.random()*11000 + 4000;
+      setTimeout(() => {
+        chat.removeChild(td);
+        const md = document.createElement('div'); md.className='msg-wrapper';
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        const mt = document.createElement('div'); mt.className='msg-time'; mt.innerText = timeStr;
+        const un = document.createElement('div'); un.className='username'; un.style.color = msg.color; un.innerText = msg.user;
+        const bb = document.createElement('div'); bb.className='bubble'; bb.innerText = msg.text;
+        md.appendChild(mt); md.appendChild(un); md.appendChild(bb);
+        chat.appendChild(md); chat.scrollTop = chat.scrollHeight;
+        setTimeout(showNext, delay);
+      }, 500 + Math.random()*500);
+    }
+    showNext();
+  }
+
+  // Swipe to reload
+  let startY;
+  document.body.addEventListener('touchstart', e => startY = e.touches[0].clientY);
+  document.body.addEventListener('touchend', e => {
+    if(e.changedTouches[0].clientY - startY > 100) location.reload();
+  });
+</script>
+</body>
+</html>
